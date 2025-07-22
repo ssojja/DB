@@ -92,7 +92,7 @@ select
 from employee;
 
 -- 현재 날짜를 조회 : curdate()
-select curdate() as today from dual;
+
 
 /*********************************
 	SELECT : 테이블 내용 상세 조회
@@ -169,17 +169,20 @@ where retire_date is not null;
 -- IFNULL 함수 : NULL 값을 다른 값으로 대체하는 방법
 -- 형식> IFNULL(NULL포함 컬럼명, 대체값)
 -- stg 부서에 속한 사원들의 정보 조회, 단, 급여가 NULL인 사원은 0원으로 치환
-select emp_id, emp_name, eng_name, gender, hire_date, retire_date, dept_id, phone, email, IFNULL(salary, 0) as salary
-from employee where dept_id = 'stg';
+SELECT emp_id, emp_name, eng_name, gender, hire_date, retire_date, dept_id, phone, email, IFNULL(salary, 0) AS SALARY
+FROM EMPLOYEE
+WHERE DEPT_ID = 'STG';
 
 -- 사원 전체 테이블의 내용을 조회, 단 영어이름이 정해지지 않은 사원들은 'smith' 이름으로 치환
-select emp_id, emp_name, IFNULL(eng_name, 'SMITH') as eng_name, gender, hire_date, retire_date, dept_id, phone, email, salary 
-from employee;
+SELECT emp_id, emp_name, IFNULL(eng_name,'SMITH') AS eng_name, gender, hire_date, retire_date, dept_id, phone, email, salary
+FROM EMPLOYEE
+ORDER BY eng_name;
 
 -- MKT 부서의 사원들을 조회, 재직중인 사원들의 RETIRE_DATE 컬럼은 현재 날짜로 치환
-SELECT emp_id, emp_name, eng_name, gender, hire_date, IFNULL(retire_date, curdate()) retire_date, dept_id, phone, email, salary
-FROM EMPLOYEE 
-WHERE DEPT_ID = 'MKT';
+SELECT emp_id, emp_name, eng_name, gender, hire_date, IFNULL(retire_date, CURDATE()) AS retire_date, dept_id, phone, email, salary
+FROM EMPLOYEE
+WHERE DEPT_ID = 'MKT'
+ORDER BY retire_date;
 
 /***************************************
 	DISTINCT : 중복된 데이터를 배제하고 조회
@@ -280,6 +283,10 @@ ORDER BY SALARY DESC;
 -- 급여가 NULL인 사원의 보너스는 기본 50
 -- 보너스가 1000 이상인 사원 조회
 -- 보너스가 높은 사원 기준으로 정렬
+SELECT emp_id, emp_name, eng_name, gender, hire_date, retire_date, dept_id, phone, email, salary, IFNULL(salary*0.2, 50) as bonus
+FROM EMPLOYEE
+WHERE DEPT_ID = 'STG';
+
 SELECT EMP_ID, EMP_NAME, HIRE_DATE, EMAIL, SALARY, IFNULL(SALARY*0.2, 50) AS BONUS
 FROM EMPLOYEE
 WHERE DEPT_ID = 'MKT' AND SALARY*0.2 >= 1000
