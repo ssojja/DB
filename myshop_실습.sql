@@ -262,3 +262,100 @@ FORMAT(SUM(TOTAL_DUE), 0) 전체금액합계,
 FORMAT(AVG(TOTAL_DUE), 2) 전체금액평균 
 FROM order_header
 GROUP BY LEFT(order_date, 4), SUBSTRING(order_date,6,2) WITH ROLLUP;
+
+/**
+	테이블 조인 : 기본 SQL 방식, ANSI SQL
+*/
+SHOW DATABASES;
+USE myshop2019;
+show tables;
+-- Q01) 전체금액이 8,500,000 이상인 주문의 주문번호, 고객아이디, 사원번호, 주문일시, 전체금액을 조회하세요.
+SELECT 
+	order_id, customer_id, e.employee_id, order_date, total_due
+FROM employee e, order_header o
+WHERE e.employee_id = o.employee_id
+	AND TOTAL_DUE >= 8500000;
+-- Q02) 위에서 작성한 쿼리문을 복사해 붙여 넣은 후 고객이름도 같이 조회되게 수정하세요.
+SELECT 
+	order_id, o.customer_id, c.customer_name, e.employee_id, order_date, total_due
+FROM employee e, order_header o, customer c
+WHERE e.employee_id = o.employee_id
+	AND o.customer_id = c.customer_id
+	AND TOTAL_DUE >= 8500000;
+    
+-- Q03) Q01 쿼리를 복사해 붙여 넣은 후 직원이름도 같이 조회되게 수정하세요.
+SELECT 
+	order_id, customer_id, e.employee_id, e.employee_name, order_date, total_due
+FROM employee e, order_header o
+WHERE e.employee_id = o.employee_id
+	AND O.TOTAL_DUE >= 8500000;
+    
+-- Q04) 위에서 작성한 쿼리문을 복사해 붙여 넣은 후 고객이름, 직원이름도 같이 조회되게 수정하세요.
+SELECT 
+	order_id, o.customer_id, c.customer_name, e.employee_id, e.employee_name, order_date, total_due
+FROM employee e, order_header o, customer c
+WHERE e.employee_id = o.employee_id
+	AND o.customer_id = c.customer_id
+	AND O.TOTAL_DUE >= 8500000;
+    
+-- Q05) 위에서 작성한 쿼리문을 복사해 붙여 넣은 후 전체금액이 8,500,000 이상인 '서울' 지역 고객만 조회되게 수정하세요.
+SELECT 
+	order_id, o.customer_id, c.customer_name, e.employee_id, e.employee_name, order_date, total_due
+FROM employee e, order_header o, customer c
+WHERE e.employee_id = o.employee_id
+	AND o.customer_id = c.customer_id
+	AND O.TOTAL_DUE >= 8500000
+    AND C.CITY = '서울';
+
+-- Q06) 위에서 작성한 쿼리문을 복사해 붙여 넣은 후 전체금액이 8,500,000 이상인 '서울' 지역 '남자' 고객만 조회되게 수정하세요.
+SELECT 
+	order_id, o.customer_id, c.customer_name, e.employee_id, e.employee_name, order_date, total_due
+FROM employee e, order_header o, customer c
+WHERE e.employee_id = o.employee_id
+	AND o.customer_id = c.customer_id
+	AND O.TOTAL_DUE >= 8500000
+    AND C.CITY = '서울'
+    AND C.GENDER = 'M';
+
+-- Q07) 주문수량이 30개 이상인 주문의 주문번호, 상품코드, 주문수량, 단가, 지불금액을 조회하세요.
+select order_id, product_id, order_qty, unit_price, line_total
+from order_detail
+where order_qty >= 30;
+
+-- Q08) 위에서 작성한 쿼리문을 복사해서 붙여 넣은 후 상품이름도 같이 조회되도록 수정하세요.
+select order_id, o.product_id, p.product_name ,order_qty, unit_price, line_total
+from order_detail o, product p
+where o.product_id = p.product_id
+	and o.order_qty >= 30;
+
+-- Q09) 상품코드, 상품이름, 소분류아이디를 조회하세요.
+select * from product;
+
+-- Q10) 위에서 작성한 쿼리문을 복사해서 붙여 넣은 후 소분류이름, 대분류아이디가 조회되게 수정하세요.
+select sub_category_name, category_id
+from product p, sub_category s
+where p.sub_category_id = s.sub_category_id;
+
+-- Q11) 다정한 사원이 2019년에 주문한 상품명을 모두 출력해주세요.
+select distinct product_name 
+from employee e, order_header o, order_detail t, product p
+where e.employee_id = o.employee_id
+	and o.order_id = t.order_id
+    and t.product_id = p.product_id
+	and left(order_date, 4) = '2019'
+    and e.employee_name = '다정한'
+order by product_name;
+
+-- Q12) 청소기를 구입한 고객아이디, 사원번호, 주문번호, 주문일시를 조회하세요.
+select customer_id, employee_id, t.order_id, order_date
+from product p, order_detail t, order_header o
+where p.product_id = t.product_id
+	and t.order_id = o.order_id
+	and p.product_name like '%청소기'
+order by customer_id;
+
+desc product;
+select * from order_detail;
+show tables;
+
+

@@ -712,3 +712,243 @@ LIMIT 3;
 -- 급여 기준 5순위 조회
 SELECT * FROM EMPLOYEE ORDER BY SALARY DESC
 LIMIT 5;
+
+-- 20250724
+/*********************************************************************
+	조인(JOIN) : 두 개 이상의 테이블을ㄹ 연동해서 sql 실행
+    ERD(Entity Relationship Diagram) : 데이터 베이스 구조도(설계도)
+    - 데이터 모델링 : 정규화 과정
+    
+    
+    ** ANSI SQL : 모든 데이터베이스 시스템들의 표준 SQL
+    조인(JOIN) 종류
+    (1) CROSS JOIN(Cartesian) - 합집합 : 테이블들의 데이터 전체를 조인 -> 테이블A(10) * 테이블B(10)
+    (2) INNER JOIN(Natural) - 교집합 : 두 개 이상의 테이블을 연결 고리를 통해 조인 실행
+    (3) OUTER JOIN : INNER JOINT + 선택한 테이블의 조인 제외 ROW 포함
+    (4) SELF JOIN : 한 테이블을 두 개 테이블처럼 조인 실행
+**********************************************************************/
+SHOW DATABASES;
+USE HRDB2019;
+SHOW TABLES;
+SELECT * FROM EMPLOYEE;
+SELECT * FROM DEPARTMENT;
+SELECT * FROM VACATION;
+
+-- CROSS JOIN : 합집합
+-- 형식> SELECT [컬럼리스트] FROM [테이블1], [테이블2], ...
+-- 		WHERE [조건절 ~]
+-- ANSI> SELECT [컬럼리스트] FROM [테이블1] CROSS JOIN [테이블2], ...
+-- 		WHERE [조건절 ~]
+SELECT *
+FROM EMPLOYEE, DEPARTMENT;
+
+SELECT COUNT(*)
+FROM EMPLOYEE CROSS JOIN DEPARTMENT;
+
+SELECT COUNT(*) FROM VACATION;		-- 102
+
+-- 사원, 부서, 휴가 테이블 cross join : 20 * 7 * 102 = 14280
+select count(*) from employee, department, vacation;
+select count(*) from employee cross join department cross join vacation;
+
+-- INNER JOIN : 교집합
+SELECT *
+FROM EMPLOYEE, DEPARTMENT
+WHERE EMPLOYEE.DEPT_ID = DEPARTMENT.DEPT_ID
+ORDER BY EMP_ID;
+
+-- INNER JOIN : ANSI
+SELECT *
+FROM EMPLOYEE INNER JOIN DEPARTMENT 
+ON EMPLOYEE.DEPT_ID = DEPARTMENT.DEPT_ID
+ORDER BY EMP_ID;
+
+-- 사원테이블, 부서테이블, 본부테이블 INNER JOIN
+-- NULL 제외한 상태에서 출력됨
+SELECT *
+FROM EMPLOYEE E, DEPARTMENT D, UNIT U
+WHERE 
+	E.DEPT_ID = D.DEPT_ID 
+AND D.UNIT_ID = U.UNIT_ID
+ORDER BY E.EMP_ID;
+
+-- 사원테이블, 부서테이블, 본부테이블 INNER JOIN : ANSI
+SELECT * 
+FROM EMPLOYEE E 
+	INNER JOIN DEPARTMENT D 
+	ON E.DEPT_ID = D.DEPT_ID 
+	INNER JOIN UNIT U
+	ON D.UNIT_ID = U.UNIT_ID;
+
+-- 사원테이블, 부서테이블, 본부테이블, 휴가테이블 INNER JOIN
+SELECT * 
+FROM EMPLOYEE E, DEPARTMENT D, UNIT U, VACATION V
+WHERE E.DEPT_ID = D.DEPT_ID
+	AND D.UNIT_ID = U.UNIT_ID
+    AND E.EMP_ID = V.EMP_ID;
+
+-- 사원테이블, 부서테이블, 본부테이블, 휴가테이블 INNER JOIN : ANSI
+SELECT * 
+FROM EMPLOYEE E 
+	INNER JOIN DEPARTMENT D 
+	ON E.DEPT_ID = D.DEPT_ID 
+	INNER JOIN UNIT U
+	ON D.UNIT_ID = U.UNIT_ID
+    INNER JOIN VACATION V
+    ON V.EMP_ID = E.EMP_ID
+    ;
+
+-- 모든 사원들의 사번, 사원명, 부서아이디, 부서명, 입사일, 급여를 조회
+SELECT
+	E.EMP_ID ,
+    E.EMP_NAME,
+	E.DEPT_ID,
+    D.DEPT_NAME,
+    E.HIRE_DATE,
+    E.SALARY
+FROM EMPLOYEE E, DEPARTMENT D
+WHERE E.DEPT_ID = D.DEPT_ID;
+
+-- 영업부에 속한 사원들의 사번, 사원명, 입사일, 퇴사일, 폰번호, 급여, 부서아이디, 부서명 조회
+SELECT E.EMP_ID, E.EMP_NAME, E.HIRE_DATE, E.RETIRE_DATE, E.PHONE, E.SALARY, E.DEPT_ID, D.DEPT_NAME
+FROM EMPLOYEE E, DEPARTMENT D
+WHERE E.DEPT_ID = D.DEPT_ID
+	AND D.DEPT_NAME = '영업';
+
+-- 인사과에 속한 사원들 중에 휴가를 사용한 사원들의 내역을 조회
+SELECT *
+FROM EMPLOYEE E, DEPARTMENT D, VACATION V
+WHERE E.DEPT_ID = D.DEPT_ID
+	AND E.EMP_ID = V.EMP_ID
+    AND D.DEPT_NAME = '인사';
+
+-- 영업부서인 사원의 사원명, 폰번호, 부서명, 휴가사용 이유 조회
+-- 휴가 사용 이유가 '두통'인 사원, 소속본부 조회
+SELECT E.EMP_NAME, E.PHONE, D.DEPT_NAME, V.REASON, U.UNIT_NAME
+FROM EMPLOYEE E, DEPARTMENT D, VACATION V, UNIT U
+WHERE E.DEPT_ID = D.DEPT_ID
+	AND E.EMP_ID = V.EMP_ID
+    AND D.UNIT_ID = U.UNIT_ID
+    AND D.DEPT_NAME = '영업'
+    AND V.REASON = '두통';
+
+-- 2014년부터 2016년까지 입사한 사원들 중에서 퇴사하지 않은 사원들의
+-- 사원아이디, 사원명, 부서명, 입사일, 소속본부를 조회
+-- 소속본부 기준으로 오름차순 정렬
+SELECT E.EMP_ID, E.EMP_NAME, D.DEPT_NAME, E.HIRE_DATE, U.UNIT_NAME
+FROM EMPLOYEE E, DEPARTMENT D, UNIT U
+WHERE 
+	E.DEPT_ID = D.DEPT_ID
+    AND D.UNIT_ID = U.UNIT_ID
+	-- AND CAST(E.HIRE_DATE AS DATE) BETWEEN '2014-01-01' AND '2016-12-31'
+    AND LEFT(HIRE_DATE, 4) BETWEEN '2014' AND '2016'
+	AND E.RETIRE_DATE IS NULL
+ORDER BY U.UNIT_ID;
+
+-- 부서별 총 급여, 평균 급여, 총휴가 사용일수를 조회
+-- 부서명, 부서아이디, 총급여, 평균급여, 휴가사용일수
+SELECT  
+	D.DEPT_ID, 
+	D.DEPT_NAME, 
+	SUM(SALARY) SUM_SALARY, 
+	AVG(SALARY) AVG_SALARY, 
+	SUM(DURATION) CNT_VACATION
+FROM EMPLOYEE E, DEPARTMENT D, VACATION V
+WHERE E.EMP_ID = V.EMP_ID
+	AND E.DEPT_ID = D.DEPT_ID
+GROUP BY D.DEPT_ID, D.DEPT_NAME;
+
+-- 본부별, 부서의 휴가사용 일수
+SELECT  
+	U.UNIT_NAME, 
+	D.DEPT_NAME,
+    D.DEPT_ID,
+	SUM(DURATION) AS 휴가사용일수
+FROM EMPLOYEE E, DEPARTMENT D, VACATION V, UNIT U
+WHERE E.EMP_ID = V.EMP_ID
+	AND E.DEPT_ID = D.DEPT_ID
+    AND D.UNIT_ID = U.UNIT_ID
+GROUP BY D.DEPT_ID, D.DEPT_NAME, U.UNIT_NAME;
+
+-- OUTER JOIN : INNER JOIN + 조인에서 제외된 ROW(테이블별 지정)
+-- 오라클 형식의 OUTER JOIN은 사용불가, ANSI SQL 형식 사용 가능!
+-- SELECT [컬럼리스트] FROM 
+-- [테이블명1 테이블 별칭] LEFT/RIGHT OUTER JOIN 테이블명2 [테이블 별칭], ...
+-- ON [테이블명1.조인컬럼 = 테이블명2.조인컬럼]
+
+-- ** 오라클 형식 OUTER JOIN 사용불가 ㅠㅠ
+-- SELECT * FROM TABLE T1, TABLE T2
+-- WHERE T1.COL(+) = T2.COL;
+
+-- 모든 부서의 부서아이디, 부서명, 본부명을 조회
+SELECT * FROM DEPARTMENT;
+
+SELECT 
+D.DEPT_ID, D.DEPT_NAME, IFNULL(U.UNIT_NAME, '협의중') UNIT_NAME
+FROM DEPARTMENT D LEFT OUTER JOIN UNIT U
+ON D.UNIT_ID = U.UNIT_ID
+ORDER BY UNIT_NAME;
+
+-- 본부별, 부서의 휴가사용 일수 조회
+-- 부서의 누락없이 모두 출력
+SELECT  
+	U.UNIT_NAME, 
+	D.DEPT_NAME,
+    D.DEPT_ID,
+	SUM(DURATION) AS 휴가사용일수
+FROM EMPLOYEE E
+LEFT OUTER JOIN VACATION V
+ON E.EMP_ID = V.EMP_ID
+RIGHT OUTER JOIN DEPARTMENT D 
+ON E.DEPT_ID = D.DEPT_ID
+INNER JOIN UNIT U
+ON	D.UNIT_ID = U.UNIT_ID	
+GROUP BY D.DEPT_ID, D.DEPT_NAME, U.UNIT_NAME;
+
+
+
+SELECT 
+	D.DEPT_NAME, U.UNIT_NAME, COUNT(V.DURATION) 휴가일수
+FROM EMPLOYEE E 
+	LEFT OUTER JOIN VACATION V
+	ON E.EMP_ID = V.EMP_ID
+	RIGHT OUTER JOIN DEPARTMENT D
+	ON E.DEPT_ID = D.DEPT_ID
+	LEFT OUTER JOIN UNIT U
+	ON D.UNIT_ID = U.UNIT_ID
+GROUP BY U.UNIT_NAME, D.DEPT_NAME
+ORDER BY U.UNIT_NAME DESC;
+
+-- 2017년부터 2018년도 까지 입사한 사원들의 사원명, 입사일, 연봉, 부서명 조회해주세요.
+-- 단, 퇴사한 사람들 제외
+-- 소속본부를 모두 조회
+SELECT EMP_NAME, HIRE_DATE, RETIRE_DATE, SALARY, D.DEPT_NAME, U.UNIT_NAME
+FROM EMPLOYEE E 
+	INNER JOIN DEPARTMENT D
+	ON E.DEPT_ID = D.DEPT_ID
+    LEFT OUTER JOIN UNIT U
+    ON U.UNIT_ID = D.UNIT_ID
+WHERE LEFT(HIRE_DATE, 4) BETWEEN '2017' AND '2018'
+    AND RETIRE_DATE IS NULL;
+
+-- SELF JOIN : 자기 자신의 테이블을 조인
+-- SELF JOIN은 서브 쿼리 형태로 실행하는 경우가 많음
+-- SELECT [컬럼리스트] FROM [테이블1], [테이블2] WHERE [테이블1.컬럼명] = [테이블2.컬럼명]
+-- 사원테이블을 SELF JOIN
+SELECT E.EMP_ID, E.EMP_NAME, M.EMP_ID, M.EMP_NAME
+FROM EMPLOYEE E, EMPLOYEE M
+WHERE E.EMP_ID = M.EMP_ID;
+
+SELECT EMP_ID, EMP_NAME
+FROM EMPLOYEE
+WHERE EMP_ID = (SELECT EMP_ID FROM EMPLOYEE WHERE EMP_NAME = '홍길동');
+
+
+
+
+
+
+
+
+
+
