@@ -354,6 +354,609 @@ SELECT * FROM EMPLOYEE
 WHERE EMAIL LIKE '____@%';
 
 
+USE HRDB2019;
+SELECT DATABASE();
+-- 20250723
+/******************************************
+	내장함수 : 숫자함수, 문자함수, 날짜함수
+    호출되는 위치 - [컬럼리스트], [조건절의 컬럼명]
+*******************************************/
+-- [숫자함수]
+-- 함수 실습을 위한 테이블 : DUAL 테이블
+-- (1) ABS(숫자) : 절대값
+SELECT ABS(100), ABS(-100) FROM DUAL;
+
+-- (2) FLOOR(숫자), TRUNCATE(숫자, 자리수) : 소수점 버리기
+SELECT FLOOR(123.456), TRUNCATE(123.456, 0), TRUNCATE(123.456, 2) FROM DUAL;
+
+-- 사원테이블의 SYS 부서 사람들의 사번, 사원명, 부서아이디, 폰번호, 급여, 보너스(급여의 25%) 추가하여 조회
+-- 보너스 컬럼은 소수점 1자리로 출력
+SELECT EMP_ID, EMP_NAME, DEPT_ID, PHONE, SALARY, TRUNCATE(SALARY*0.25, 1) AS BONUS 
+FROM EMPLOYEE
+WHERE DEPT_ID = 'SYS';
+
+-- (3) RAND() : 임의의 수를 난수로 발생시키는 함수, 0 ~ 1 사이의 난수 생성
+SELECT RAND() FROM DUAL;
+
+-- 정수 3자리 난수 발생
+SELECT FLOOR(RAND()*1000) RAND_NUM FROM DUAL;
+
+-- 정수 4자리(0 ~ 9999) 난수 발생, 소수점 2자리
+SELECT TRUNCATE(RAND()*10000, 2) AS RAND_NUM FROM DUAL;
+
+
+-- (4) MOD(숫자, 나누는수) : 나머지 함수
+SELECT MOD(123, 2) ODD, MOD(124, 2) EVEN FROM DUAL;
+
+-- 3자리 수를 랜덤으로 발생시켜, 2로 나누어 홀수, 짝수를 구분
+SELECT MOD(FLOOR(RAND() * 1000), 2) AS RESULT FROM DUAL;
+
+-- [문자함수]
+-- (1) CONCAT(문자열1, 문자열2 ...) : 문자열 합쳐주는 함수
+SELECT CONCAT("안녕하세요! ", "저는 ", '홍길동입니다.') AS STR FROM DUAL;
+
+-- 사번, 사원명, 사원명2 컬럼을 생성하여 조회
+-- 사원명2 컬럼의 데이터 형식은 S0001(홍길동) 출력
+SELECT 
+	EMP_ID, EMP_NAME, CONCAT(EMP_ID, "(", EMP_NAME, ")") AS EMP_INFO 
+FROM EMPLOYEE;
+
+-- 사번, 사원명, 영어이름, 입사일, 폰번호, 급여를 조회
+-- 영어이름의 출력형식을 '홍길동/HONG' 타입으로 출력
+-- 영어이름이 NULL인 경우에는 'SMITH'를 기본으로 조회
+SELECT
+	EMP_ID, EMP_NAME, CONCAT(EMP_NAME, "/" , IFNULL(ENG_NAME, 'smith')) AS ENG_NAME, HIRE_DATE, PHONE, SALARY
+FROM EMPLOYEE;
+
+-- (2) SUBSTRING(문자열, 위치, 갯수) : 문자열 추출, 공백도 하나의 문자 처리
+SELECT 
+	SUBSTRING("대한민국 홍길동", 1, 4) AS STR1,
+	SUBSTRING("대한민국 홍길동", 1, 6) AS STR2
+FROM DUAL;
+
+-- 사원테이블의 사번, 사원명, 입사연도, 입사월, 입사일, 급여를 조회
+SELECT 
+	EMP_ID, 
+	EMP_NAME,
+    HIRE_DATE,
+	SUBSTRING(HIRE_DATE, 1, 4) AS YEAR, 
+	SUBSTRING(HIRE_DATE, 6, 2) AS MONTH,
+    SUBSTRING(HIRE_DATE, 9, 2) AS DAY,
+    SALARY
+FROM EMPLOYEE;
+
+-- 2015년도에 입사한 모든 사원조회
+SELECT *
+FROM EMPLOYEE
+WHERE SUBSTRING(HIRE_DATE, 1, 4) = '2015';
+
+-- 2018년도에 입사한 정보시스템(SYS) 부서 사원 조회
+SELECT *
+FROM EMPLOYEE
+WHERE SUBSTRING(HIRE_DATE, 1, 4) = '2018'
+AND DEPT_ID = 'SYS';
+
+-- (3) LEFT(문자열, 갯수), RIGHT(문자열, 갯수) : 왼쪽, 오른쪽 기준으로 문자열 추출
+SELECT LEFT(CURDATE(), 4) AS YEAR, RIGHT('010-1234-4567', 4) AS PHONE FROM DUAL;
+
+-- 2018년도에 입사한 모든 사원 조회
+SELECT *
+FROM EMPLOYEE
+WHERE LEFT(HIRE_DATE, 4) = '2018';
+
+-- 2015년부터 2017년 사이에 입사한 모든 사원 조회
+SELECT * 
+FROM EMPLOYEE
+WHERE LEFT(HIRE_DATE, 4) BETWEEN '2015' AND '2017';
+
+-- 사원번호, 사원명, 입사일, 폰번호, 급여를 조회
+-- 폰번호는 마지막 4자리만 출력
+SELECT EMP_ID, EMP_NAME, HIRE_DATE, RIGHT(PHONE, 4) AS PHONE, SALARY
+FROM EMPLOYEE;
+
+-- (4) UPPER(문자열), LOWER(문자열) : 대문자, 소문자로 치환
+SELECT UPPER('welcomeToMysql!!'), lower('welcomeToMysql!!') from dual;
+
+-- 사번, 사원명, 영어이름, 부서아이디, 이메일, 급여를 조회
+-- 영어이름은 전체 대문자, 부서아이디는 소문자, 이메일은 대문자
+SELECT EMP_ID, EMP_NAME, UPPER(ENG_NAME) AS ENG_NAME, LOWER(DEPT_ID) AS DEPT_ID, UPPER(EMAIL) AS EMAIL, SALARY
+FROM EMPLOYEE;
+
+-- (5) TRIM(문자열) : 공백 제거(중간 공백 제거 X)
+SELECT
+	TRIM('   대한민국') AS T1,
+    TRIM('대한민국		') AS T2,
+    TRIM('대한           민국') AS T3,
+	TRIM('	대한민국	') AS T4
+FROM DUAL;
+
+-- (6) FORMAT(문자열, 소수점자리) : 문자열 포맷
+SELECT FORMAT(123456, 0) AS FORMAT FROM DUAL;
+SELECT FORMAT('123456', 0) AS FORMAT FROM DUAL;
+
+-- 사번, 사원명, 입사일, 폰번호, 급여, 보너스(급여의 20%)를 조회
+-- 급여, 보너스는 소수점 없이 3자리 콤마(,)로 구분하여 출력
+-- 급여가 NULL인 경우에는 기본값 0
+-- 2016년 부터 2017년 사이에 입사한 사원!
+-- 사번 기준으로 내림차순 정렬
+SELECT 
+EMP_ID, 
+EMP_NAME, 
+HIRE_DATE, 
+PHONE, 
+FORMAT(IFNULL(SALARY, 0) , 0) AS SALARY,
+FORMAT(IFNULL(SALARY*0.2, 0), 0) AS BONUS
+FROM EMPLOYEE
+WHERE LEFT(HIRE_DATE, 4) BETWEEN '2016' AND '2017'
+ORDER BY EMP_ID DESC;
+
+-- [날짜함수]
+-- CURDATE() : 현재 날짜 (년, 월, 일)
+-- SYSDATE(), NOW() : 현재 날짜 (년, 월, 일, 시, 분, 초)
+SELECT CURDATE(), SYSDATE(), NOW() FROM DUAL;
+
+-- [형변환 함수]
+-- CAST(변환하고자 하는 값 AS 데이터 타입)
+-- CONVERT(변환하고자 하는 값 AS 데이터 타입) --> MySQL에서 지원하는 OLD버전
+SELECT 1234 AS NUMBER, CAST('1234' AS CHAR) AS STRING FROM DUAL;
+SELECT '1234' AS STRING, CAST('1234' AS SIGNED INTEGER) AS NUMBER FROM DUAL;
+SELECT '20250723' AS STRING, CAST('20250723' AS DATE) AS DATE FROM DUAL;
+SELECT 
+NOW() AS NOW_DATE, 
+CAST(NOW() AS CHAR) AS STRING,
+CAST(CAST(NOW() AS CHAR)AS DATE) AS DATE,
+CAST(CAST(NOW() AS CHAR)AS DATETIME) AS DATETIME,
+CAST(CURDATE() AS DATETIME) AS CUR_DATETIME
+FROM DUAL;
+
+SELECT 
+'12345' AS STRING,
+CAST('12345' AS SIGNED INTEGER) AS CAST_INT,
+CAST('12345' AS UNSIGNED INTEGER) AS CAST_INT2,
+CAST('12345' AS DECIMAL(10,2)) AS CAST_DECIMAL
+FROM DUAL;
+
+-- [문자 치환 함수]
+-- REPLACE(문자열, OLD, NEW)
+SELECT 
+'홍-길-동' AS OLD,
+REPLACE('홍-길-동', '-', ',') AS NEW
+FROM DUAL;
+
+-- 사원테이블의 사번, 사원명, 입사일, 퇴사일, 부서아이디, 폰번호, 급여를 조회
+-- 입사일, 퇴사일 출력은 '-'을 '/'로 치환하여 출력
+-- 재직중인 사원은 퇴사 컬럼에 현재날짜를 출력
+-- 급여 출력시 3자리 콤마(,) 구분
+SELECT 
+EMP_ID, 
+EMP_NAME, 
+REPLACE(HIRE_DATE, '-', '/') AS HIRE_DATE, 
+REPLACE(IFNULL(RETIRE_DATE, CURDATE()), '-', '/') AS RETIRE_DATE, 
+DEPT_ID, 
+PHONE, 
+FORMAT(SALARY, 0) AS SALARY
+FROM EMPLOYEE;
+
+-- '20150101' 입력된 날짜를 기준으로 해당 날짜 이후에 입사한 사원들을 모두 조회
+-- 모든 mysql 데이터베이스에서 적용 가능한 형태로 작성
+SELECT *
+FROM EMPLOYEE
+WHERE CAST('20150101' AS DATE) <= HIRE_DATE;
+
+-- '20150101' ~ '20171231' 사이에 입사한 사원들을 모두 조회
+-- 모든 mysql 데이터베이스에서 적용 가능한 형태로 작성
+SELECT *
+FROM EMPLOYEE
+WHERE HIRE_DATE BETWEEN CAST('20150101' AS DATE) AND CAST('20171231' AS DATE);
+
+/**********************************************************
+	그룹(집계) 함수 : sum(), avg(), min(), max(), count()..
+    group by - 그룹 함수를 적용하기 위한 그룹핑 컬럼 정의
+    having - 그룹 함수에서 사용하는 조건절
+    ** 그룹함수는 그룹핑이 가능한 반복된 데이터를 가진 컬럼과 많이 사용됨
+***********************************************************/
+-- (1) sum(숫자) : 전체 총합을 구하는 함수
+-- 사원들 전체의 급여 총액을 조회, 3자리 구분, 마지막 '만원'표시
+SELECT CONCAT(FORMAT(SUM(SALARY), 0), '만원') AS 총급여 FROM EMPLOYEE;
+
+SELECT DEPT_ID, SUM(SALARY) 
+FROM EMPLOYEE 
+GROUP BY DEPT_ID;
+
+-- (2) avg(숫자) : 전체 평균을 구하는 함수
+-- 사원들 전체의 평균을 조회, 3자리 구분, 앞에 '$' 표시
+SELECT CONCAT('$',FORMAT(AVG(SALARY), 0)) AS 평균급여
+FROM EMPLOYEE;
+
+-- 정보시스템(SYS) 부서 전체의 급여 총액과 평균을 조회
+-- 3자리 구분, 마지막 '만원'표시
+SELECT 
+CONCAT(FORMAT(SUM(SALARY), 0), '만원') AS 총급여, 
+CONCAT(FORMAT(AVG(SALARY), 0), '만원') AS 평균급여 
+FROM EMPLOYEE
+WHERE DEPT_ID = 'SYS';
+
+-- (3) max(숫자) : 최대값 구하는 함수
+-- 가장 높은 급여를 받는 사원의 급여를 조회
+SELECT MAX(SALARY) FROM EMPLOYEE;
+
+-- (4) min(숫자) : 최소값 구하는 함수
+-- 가장 낮은 급여를 받는 사원의 급여를 조회
+SELECT MIN(SALARY) FROM EMPLOYEE;
+
+-- 사원들의 총급여, 평균급여, 최대급여, 최소급여를 조회
+-- 3자리 구분
+SELECT 
+	FORMAT(SUM(SALARY), 0) AS 총급여, 
+	FORMAT(AVG(SALARY), 0) AS 평균급여, 
+	FORMAT(MAX(SALARY), 0) AS 최대급여, 
+	FORMAT(MIN(SALARY), 0) AS 최소급여
+FROM EMPLOYEE;
+
+-- (5) count(컬럼) : 조건에 맞는 데이터의 row 수를 조회, NULL은 제외
+-- 전제 row count
+SELECT COUNT(*) FROM EMPLOYEE;		-- 20
+-- 급여 컬럼의 ROW COUNT
+SELECT COUNT(SALARY) FROM EMPLOYEE;	-- 19
+
+-- 재직중인 사원의 ROW COUNT
+-- 퇴사한 사원의 ROW COUNT
+SELECT 
+	COUNT(*) AS 총사원,
+	COUNT(RETIRE_DATE) AS 퇴사자,
+    COUNT(*) - COUNT(RETIRE_DATE) AS 재직자
+FROM EMPLOYEE;
+
+-- '2015'년도에 입사한 입사자 수
+SELECT COUNT(*)
+FROM EMPLOYEE
+WHERE LEFT(HIRE_DATE, 4) = '2015';
+
+-- 정보시스템(SYS) 부서의 사원수
+SELECT COUNT(*)
+FROM EMPLOYEE
+WHERE DEPT_ID = 'SYS';
+
+-- 가장 빠른 입사자, 가장 늦은 입사자를 조회 : MAX(), MIN() 함수를 사용
+SELECT MIN(HIRE_DATE), MAX(HIRE_DATE) FROM EMPLOYEE;
+
+-- 가장 빨리 입사한 사람의 정보를 조회 : 서브쿼리로 그룹함수로 조회
+SELECT * 
+FROM EMPLOYEE 
+WHERE HIRE_DATE = (SELECT MIN(HIRE_DATE) FROM EMPLOYEE);
+
+SELECT * 
+FROM EMPLOYEE 
+WHERE HIRE_DATE = '2013-01-01';
+
+-- [GROUP BY] : 그룹함수와 일반 컬럼을 함께 사용할 수 있도록 함
+-- ~별 그룹핑이 가능한 컬럼으로 쿼리를 실행
+
+-- 부서별, 총급여, 평균급여, 사원수, 최대급여, 최소급여 조회
+SELECT DEPT_ID, SUM(SALARY), AVG(SALARY), COUNT(*) 사원수, MAX(SALARY), MIN(SALARY)
+FROM EMPLOYEE
+GROUP BY DEPT_ID;
+
+-- 연도별, 총급여, 평균급여, 사원수, 최대급여, 최소급여 조회
+-- 소수점X, 3자리 구분
+-- 총 급여가 3000 이상인 년도 출력
+SELECT 
+	LEFT(HIRE_DATE, 4) 연도,
+    FORMAT(SUM(SALARY), 0) 총급여,
+    FORMAT(AVG(SALARY), 0) 평균급여,
+    COUNT(*) 사원수,
+    FORMAT(MAX(SALARY), 0) 최대급여,
+    FORMAT(MIN(SALARY), 0) 최소급여
+FROM EMPLOYEE 
+GROUP BY LEFT(HIRE_DATE, 4)
+HAVING SUM(SALARY) >= 3000;
+
+-- 사원별 총급여, 평균급여 조회 : 그룹핑의 의미가 없음
+
+-- [HAVING 조건절] : 그룹함수를 적용한 결과에 조건을 추가
+-- 부서별 총급여, 평균급여를 조회
+-- 부서의 총급여가 30000 인상인 부서만 출력
+-- 급여 컬럼의 NULL은 제외
+SELECT DEPT_ID, 
+	FORMAT(SUM(SALARY), 0) AS SUM, 
+    FORMAT(AVG(SALARY), 0) AS AVG,
+    COUNT(*) AS CNT
+FROM EMPLOYEE
+WHERE SALARY IS NOT NULL
+GROUP BY DEPT_ID
+HAVING SUM(SALARY) >= 30000;
+
+-- 연도별, 총급여, 평균급여, 사원수, 최대급여, 최소급여 조회
+-- 소수점X, 3자리 구분
+-- 총 급여가 30000 이상인 년도 출력
+-- 급여 협상이 안된 사원은 제외
+SELECT 
+	LEFT(HIRE_DATE,4) AS 연도,
+    COUNT(*) AS 사원수,
+	FORMAT(SUM(SALARY),0) AS 총급여, 
+	FORMAT(AVG(SALARY), 0) AS 평균급여, 
+	FORMAT(MAX(SALARY),0) AS 최대급여, 
+	FORMAT(MIN(SALARY),0) AS 최소급여
+FROM EMPLOYEE
+WHERE SALARY IS NOT NULL
+GROUP BY LEFT(HIRE_DATE,4)
+HAVING SUM(SALARY) >= 30000;
+
+-- ROLLUP 함수 : 리포팅을 위한 함수
+-- 부서별 사원수, 총급여, 평균급여 조회
+SELECT DEPT_ID,
+	COUNT(*) 사원수,
+    SUM(IFNULL(SALARY,0)) 총급여,
+    FLOOR(AVG(IFNULL(SALARY,0))) 평균급여
+FROM EMPLOYEE
+GROUP BY DEPT_ID WITH ROLLUP;
+    
+-- ROLLUP한 결과의 부서아이디를 정의
+SELECT IF(GROUPING(DEPT_ID), '부서총합계', IFNULL(DEPT_ID, '-')) 부서명,
+	COUNT(*) 사원수,
+    SUM(IFNULL(SALARY,0)) 총급여,
+    FLOOR(AVG(IFNULL(SALARY,0))) 평균급여
+FROM EMPLOYEE
+GROUP BY DEPT_ID WITH ROLLUP;
+
+-- ROLLUP한 결과의 연도를 정의
+SELECT 
+	LEFT(HIRE_DATE,4) AS 연도,
+    COUNT(*) AS 사원수,
+	FORMAT(SUM(SALARY),0) AS 총급여, 
+	FORMAT(AVG(SALARY), 0) AS 평균급여, 
+	FORMAT(MAX(SALARY),0) AS 최대급여, 
+	FORMAT(MIN(SALARY),0) AS 최소급여
+FROM EMPLOYEE
+WHERE SALARY IS NOT NULL
+GROUP BY LEFT(HIRE_DATE,4) WITH ROLLUP;
+
+-- LIMIT 함수 : 출력 갯수 제한 함수
+SELECT * FROM EMPLOYEE
+LIMIT 3;
+
+-- 급여 기준 5순위 조회
+SELECT * FROM EMPLOYEE ORDER BY SALARY DESC
+LIMIT 5;
+
+-- 20250724
+/*********************************************************************
+	조인(JOIN) : 두 개 이상의 테이블을ㄹ 연동해서 sql 실행
+    ERD(Entity Relationship Diagram) : 데이터 베이스 구조도(설계도)
+    - 데이터 모델링 : 정규화 과정
+    
+    
+    ** ANSI SQL : 모든 데이터베이스 시스템들의 표준 SQL
+    조인(JOIN) 종류
+    (1) CROSS JOIN(Cartesian) - 합집합 : 테이블들의 데이터 전체를 조인 -> 테이블A(10) * 테이블B(10)
+    (2) INNER JOIN(Natural) - 교집합 : 두 개 이상의 테이블을 연결 고리를 통해 조인 실행
+    (3) OUTER JOIN : INNER JOINT + 선택한 테이블의 조인 제외 ROW 포함
+    (4) SELF JOIN : 한 테이블을 두 개 테이블처럼 조인 실행
+**********************************************************************/
+SHOW DATABASES;
+USE HRDB2019;
+SHOW TABLES;
+SELECT * FROM EMPLOYEE;
+SELECT * FROM DEPARTMENT;
+SELECT * FROM VACATION;
+
+-- CROSS JOIN : 합집합
+-- 형식> SELECT [컬럼리스트] FROM [테이블1], [테이블2], ...
+-- 		WHERE [조건절 ~]
+-- ANSI> SELECT [컬럼리스트] FROM [테이블1] CROSS JOIN [테이블2], ...
+-- 		WHERE [조건절 ~]
+SELECT *
+FROM EMPLOYEE, DEPARTMENT;
+
+SELECT COUNT(*)
+FROM EMPLOYEE CROSS JOIN DEPARTMENT;
+
+SELECT COUNT(*) FROM VACATION;		-- 102
+
+-- 사원, 부서, 휴가 테이블 cross join : 20 * 7 * 102 = 14280
+select count(*) from employee, department, vacation;
+select count(*) from employee cross join department cross join vacation;
+
+-- INNER JOIN : 교집합
+SELECT *
+FROM EMPLOYEE, DEPARTMENT
+WHERE EMPLOYEE.DEPT_ID = DEPARTMENT.DEPT_ID
+ORDER BY EMP_ID;
+
+-- INNER JOIN : ANSI
+SELECT *
+FROM EMPLOYEE INNER JOIN DEPARTMENT 
+ON EMPLOYEE.DEPT_ID = DEPARTMENT.DEPT_ID
+ORDER BY EMP_ID;
+
+-- 사원테이블, 부서테이블, 본부테이블 INNER JOIN
+-- NULL 제외한 상태에서 출력됨
+SELECT *
+FROM EMPLOYEE E, DEPARTMENT D, UNIT U
+WHERE 
+	E.DEPT_ID = D.DEPT_ID 
+AND D.UNIT_ID = U.UNIT_ID
+ORDER BY E.EMP_ID;
+
+SELECT * 
+FROM EMPLOYEE E
+	LEFT OUTER JOIN DEPARTMENT D
+	ON E.DEPT_ID = D.DEPT_ID
+    LEFT OUTER JOIN UNIT U
+    ON D.UNIT_ID = U.UNIT_ID;
+
+SELECT * FROM DEPARTMENT;
+
+-- 사원테이블, 부서테이블, 본부테이블 INNER JOIN : ANSI
+SELECT * 
+FROM EMPLOYEE E 
+	INNER JOIN DEPARTMENT D 
+	ON E.DEPT_ID = D.DEPT_ID 
+	INNER JOIN UNIT U
+	ON D.UNIT_ID = U.UNIT_ID;
+
+-- 사원테이블, 부서테이블, 본부테이블, 휴가테이블 INNER JOIN
+SELECT * 
+FROM EMPLOYEE E, DEPARTMENT D, UNIT U, VACATION V
+WHERE E.DEPT_ID = D.DEPT_ID
+	AND D.UNIT_ID = U.UNIT_ID
+    AND E.EMP_ID = V.EMP_ID;
+
+-- 사원테이블, 부서테이블, 본부테이블, 휴가테이블 INNER JOIN : ANSI
+SELECT COUNT(*) 
+FROM EMPLOYEE E 
+	INNER JOIN DEPARTMENT D 
+	ON E.DEPT_ID = D.DEPT_ID 
+	INNER JOIN UNIT U
+	ON D.UNIT_ID = U.UNIT_ID
+    INNER JOIN VACATION V
+    ON V.EMP_ID = E.EMP_ID
+    ;
+
+-- 모든 사원들의 사번, 사원명, 부서아이디, 부서명, 입사일, 급여를 조회
+SELECT
+	E.EMP_ID ,
+    E.EMP_NAME,
+	E.DEPT_ID,
+    D.DEPT_NAME,
+    E.HIRE_DATE,
+    E.SALARY
+FROM EMPLOYEE E, DEPARTMENT D
+WHERE E.DEPT_ID = D.DEPT_ID;
+
+-- 영업부에 속한 사원들의 사번, 사원명, 입사일, 퇴사일, 폰번호, 급여, 부서아이디, 부서명 조회
+SELECT E.EMP_ID, E.EMP_NAME, E.HIRE_DATE, E.RETIRE_DATE, E.PHONE, E.SALARY, E.DEPT_ID, D.DEPT_NAME
+FROM EMPLOYEE E, DEPARTMENT D
+WHERE E.DEPT_ID = D.DEPT_ID
+	AND D.DEPT_NAME = '영업';
+
+-- 인사과에 속한 사원들 중에 휴가를 사용한 사원들의 내역을 조회
+SELECT *
+FROM EMPLOYEE E, DEPARTMENT D, VACATION V
+WHERE E.DEPT_ID = D.DEPT_ID
+	AND E.EMP_ID = V.EMP_ID
+    AND D.DEPT_NAME = '인사';
+
+-- 영업부서인 사원의 사원명, 폰번호, 부서명, 휴가사용 이유 조회
+-- 휴가 사용 이유가 '두통'인 사원, 소속본부 조회
+SELECT E.EMP_NAME, E.PHONE, D.DEPT_NAME, V.REASON, U.UNIT_NAME
+FROM EMPLOYEE E, DEPARTMENT D, VACATION V, UNIT U
+WHERE E.DEPT_ID = D.DEPT_ID
+	AND E.EMP_ID = V.EMP_ID
+    AND D.UNIT_ID = U.UNIT_ID
+    AND D.DEPT_NAME = '영업'
+    AND V.REASON = '두통';
+
+-- 2014년부터 2016년까지 입사한 사원들 중에서 퇴사하지 않은 사원들의
+-- 사원아이디, 사원명, 부서명, 입사일, 소속본부를 조회
+-- 소속본부 기준으로 오름차순 정렬
+SELECT E.EMP_ID, E.EMP_NAME, D.DEPT_NAME, E.HIRE_DATE, U.UNIT_NAME
+FROM EMPLOYEE E, DEPARTMENT D, UNIT U
+WHERE 
+	E.DEPT_ID = D.DEPT_ID
+    AND D.UNIT_ID = U.UNIT_ID
+	-- AND CAST(E.HIRE_DATE AS DATE) BETWEEN '2014-01-01' AND '2016-12-31'
+    AND LEFT(HIRE_DATE, 4) BETWEEN '2014' AND '2016'
+	AND E.RETIRE_DATE IS NULL
+ORDER BY U.UNIT_ID;
+
+-- 부서별 총 급여, 평균 급여, 총휴가 사용일수를 조회
+-- 부서명, 부서아이디, 총급여, 평균급여, 휴가사용일수
+SELECT  
+	D.DEPT_ID, 
+	D.DEPT_NAME, 
+	SUM(SALARY) SUM_SALARY, 
+	AVG(SALARY) AVG_SALARY, 
+	SUM(DURATION) CNT_VACATION
+FROM EMPLOYEE E, DEPARTMENT D, VACATION V
+WHERE E.EMP_ID = V.EMP_ID
+	AND E.DEPT_ID = D.DEPT_ID
+GROUP BY D.DEPT_ID, D.DEPT_NAME;
+
+-- 본부별, 부서의 휴가사용 일수
+SELECT  
+	U.UNIT_NAME, 
+	D.DEPT_NAME,
+    D.DEPT_ID,
+	SUM(DURATION) AS 휴가사용일수
+FROM EMPLOYEE E, DEPARTMENT D, VACATION V, UNIT U
+WHERE E.EMP_ID = V.EMP_ID
+	AND E.DEPT_ID = D.DEPT_ID
+    AND D.UNIT_ID = U.UNIT_ID
+GROUP BY D.DEPT_ID, D.DEPT_NAME, U.UNIT_NAME;
+
+-- OUTER JOIN : INNER JOIN + 조인에서 제외된 ROW(테이블별 지정)
+-- 오라클 형식의 OUTER JOIN은 사용불가, ANSI SQL 형식 사용 가능!
+-- SELECT [컬럼리스트] FROM 
+-- [테이블명1 테이블 별칭] LEFT/RIGHT OUTER JOIN 테이블명2 [테이블 별칭], ...
+-- ON [테이블명1.조인컬럼 = 테이블명2.조인컬럼]
+
+-- ** 오라클 형식 OUTER JOIN 사용불가 ㅠㅠ
+-- SELECT * FROM TABLE T1, TABLE T2
+-- WHERE T1.COL(+) = T2.COL;
+
+-- 모든 부서의 부서아이디, 부서명, 본부명을 조회
+SELECT * FROM DEPARTMENT;
+
+SELECT 
+D.DEPT_ID, D.DEPT_NAME, IFNULL(U.UNIT_NAME, '협의중') UNIT_NAME
+FROM DEPARTMENT D LEFT OUTER JOIN UNIT U
+ON D.UNIT_ID = U.UNIT_ID
+ORDER BY UNIT_NAME;
+
+-- 본부별, 부서의 휴가사용 일수 조회
+-- 부서의 누락없이 모두 출력
+SELECT  
+	U.UNIT_NAME, 
+	D.DEPT_NAME,
+    D.DEPT_ID,
+	SUM(DURATION) AS 휴가사용일수
+FROM EMPLOYEE E
+LEFT OUTER JOIN VACATION V
+ON E.EMP_ID = V.EMP_ID
+RIGHT OUTER JOIN DEPARTMENT D 
+ON E.DEPT_ID = D.DEPT_ID
+INNER JOIN UNIT U
+ON	D.UNIT_ID = U.UNIT_ID
+GROUP BY D.DEPT_ID, D.DEPT_NAME, U.UNIT_NAME;
+
+
+
+SELECT 
+	D.DEPT_NAME, U.UNIT_NAME, COUNT(V.DURATION) 휴가일수
+FROM EMPLOYEE E 
+	LEFT OUTER JOIN VACATION V
+	ON E.EMP_ID = V.EMP_ID
+	RIGHT OUTER JOIN DEPARTMENT D
+	ON E.DEPT_ID = D.DEPT_ID
+	LEFT OUTER JOIN UNIT U
+	ON D.UNIT_ID = U.UNIT_ID
+GROUP BY U.UNIT_NAME, D.DEPT_NAME
+ORDER BY U.UNIT_NAME DESC;
+
+-- 2017년부터 2018년도 까지 입사한 사원들의 사원명, 입사일, 연봉, 부서명 조회해주세요.
+-- 단, 퇴사한 사람들 제외
+-- 소속본부를 모두 조회
+SELECT EMP_NAME, HIRE_DATE, RETIRE_DATE, SALARY, D.DEPT_NAME, U.UNIT_NAME
+FROM EMPLOYEE E 
+	INNER JOIN DEPARTMENT D
+	ON E.DEPT_ID = D.DEPT_ID
+    LEFT OUTER JOIN UNIT U
+    ON U.UNIT_ID = D.UNIT_ID
+WHERE LEFT(HIRE_DATE, 4) BETWEEN '2017' AND '2018'
+    AND RETIRE_DATE IS NULL;
+
+-- SELF JOIN : 자기 자신의 테이블을 조인
+-- SELF JOIN은 서브 쿼리 형태로 실행하는 경우가 많음
+-- SELECT [컬럼리스트] FROM [테이블1], [테이블2] WHERE [테이블1.컬럼명] = [테이블2.컬럼명]
+-- 사원테이블을 SELF JOIN
+SELECT E.EMP_ID, E.EMP_NAME, M.EMP_ID, M.EMP_NAME
+FROM EMPLOYEE E, EMPLOYEE M
+WHERE E.EMP_ID = M.EMP_ID;
+
+SELECT EMP_ID, EMP_NAME
+FROM EMPLOYEE
+WHERE EMP_ID = (SELECT EMP_ID FROM EMPLOYEE WHERE EMP_NAME = '홍길동');
 
 
 
