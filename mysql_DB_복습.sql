@@ -1884,3 +1884,240 @@ from (select m.name, m.created_at, od.order_date, oi.quantity, oi.product_id
 	where m.member_id = od.member_id
 		and od.order_id = oi.order_id) t1 right outer join product p
 											on t1.product_id = p.product_id;
+                                            
+-- 20250729
+/****************************************
+	행번호, 트리거를 이용한 사원번호 생성
+*****************************************/
+use hrdb2019;
+select database();
+
+-- 사원테이블의 사번, 사원명, 입사일, 폰번호, 이메일, 급여 조회
+select emp_id, emp_name, hire_date, phone, email, salary
+from employee;
+
+-- row_number() over(order by 컬럼명 ASC/DESC)
+-- 입사일 : 입사년도, 급여 : 3자리 구분
+select
+	row_number() over(order by emp_id) as rno,
+    emp_id, emp_name, left(hire_date, 4) as hire_date, phone, email, format(salary, 0) as salary
+from employee;
+
+select 
+	row_number() over(order by emp_id) as rno,
+    emp_id, emp_name, concat(left(hire_date, 4), '년') as hire_date, phone, email, 
+    format(salary, 0) as salary
+from employee;
+
+-- 석차를 구하는 함수
+select 
+	-- row_number() over() as rno, -- 동시에 같이 쓰게되면 row_number 먼저 실행됨..
+	rank() over(order by salary desc) as r,
+    emp_id, emp_name, dept_id, salary
+from employee
+order by salary desc;
+
+-- 트리거 : 프로시저(함수, 메소드)를 호출하는 시작점
+select * 
+from information_schema.triggers;
+
+-- 트리거 실습 테이블
+create table trg_member(
+	mid		char(5), -- 'M0001'
+    name	varchar(10),
+    mdate	date
+);
+
+show tables;
+desc trg_member;
+select * from trg_member;
+
+alter table trg_member
+	modify mid varchar(5);
+
+-- trigger 생성 : 여러개의 sql문 포함
+delimiter $$
+
+create trigger trg_member_mid
+before insert on trg_member -- 테이블명
+for each row
+begin
+declare max_code int;
+
+-- 현재 저장된 값 중 가장 큰 값을 가져옴
+SELECT IFNULL(MAX(CAST(right(mid, 4) AS UNSIGNED)), 0)
+INTO max_code
+FROM trg_member;
+
+-- 'M0001' 형식으로 아이디 생성, LPAD(값, 크기, 채워지는 문자형식) : M0001
+SET NEW.mid = concat('M', LPAD(max_code + 1, 4, '0'));
+
+end $$
+delimiter ;
+
+select * from information_schema.triggers;
+select * from trg_member;
+
+insert into trg_member(name, mdate) values('홍길동', curdate());
+-- 트리거 삭제
+drop trigger employee_stru_emp_id;
+
+show tables;
+drop table employee_stru2;
+-- employee 테이블 구조만 복제
+desc employee;
+create table employee_stru2
+as
+select * from employee where 1 = 0;	
+-- 1 = 0의 경우 구조만 복사 : key 복사 안됨
+
+-- employee_stru, emp_id에 기본키 제약사항 추가
+alter table employee_stru
+	add constraint primary key(emp_id);
+
+desc employee_stru;
+select * from employee_stru;
+
+-- emp_id에 데이터 insert 작업 시 트리거가 실행되도록 생성
+-- 'E0001' 형식으로 데이터 추가
+select * from information_schema.triggers;
+
+delimiter $$
+
+create trigger employee_stru_emp_id
+before insert on employee_stru -- 테이블명
+for each row
+begin
+declare max_code int;
+
+-- 현재 저장된 값 중 가장 큰 값을 가져옴
+SELECT IFNULL(MAX(CAST(right(emp_id, 4) AS UNSIGNED)), 0)
+INTO max_code
+FROM employee_stru;
+
+-- 'E0001' 형식으로 아이디 생성, LPAD(값, 크기, 채워지는 문자형식) : E0001
+SET NEW.emp_id = concat('E', LPAD(max_code + 1, 4, '0'));
+
+end $$
+delimiter ;
+
+INSERT INTO employee_stru(emp_name, eng_name, gender, hire_date, retire_date, 
+dept_id, phone, email, salary) 
+values('김아무개', 'kim', 'm', curdate(), null, 
+'MKT', '010-9876-1234', 'KIM@example.com', 1000);
+
+-- 참조 관계에 대한 트리거 생성 : 참조관계(부모(dept : dept_id) <---> 자식(emp : dept_id))
+select * from dept;
+select * from emp;
+
+-- ACC 부서 삭제
+delete from dept where dept_id = 'ACC';	-- emp의 고소해 사원이 참조중
+delete from dept where dept_id = 'GEN';	-- 참조하고 있지 않은 경우 삭제 가능
+-- 정주고 사원 삭제
+delete from emp where emp_id = 'S0019';
+
+-- 1. 참조 관계 설정 시 on casecade delete
+-- 부모의 참조 컬럼이 삭제되면, 자식의 행이 함께 삭제됨
+-- 뉴스테이블의 기사 컬럼이 삭제되면, 댓글테이블의 댓글이 함께 삭제
+-- 게시판의 게시글 삭제 시, 게시글의 댓글이 함께 삭제
+create table board(
+	bid 	int		primary key 	auto_increment,
+    title 	varchar(100)	not null,
+    content	longtext,
+    bdate	datetime
+);
+
+create table reply(
+	rid		int		primary key		auto_increment,
+    content varchar(100)	not null,
+    bid		int		not null,
+    rdate	datetime,
+    constraint fk_reply_bid		foreign key(bid)
+		references board(bid) on delete cascade
+);
+
+desc board;
+desc reply;
+
+select * from board;
+insert into board(title, content, bdate)
+values('test', 'test1', curdate());
+
+select * from reply;
+insert into reply(content, bid, rdate)
+values('replye test', 1, curdate());
+
+-- bid, 2삭제
+delete from board where bid = 2;
+select * from board;
+select * from reply;
+
+-- 2. 트리거를 사용하여 부모의 참조 컬럼 삭제 시 자식의 참조 컬럼 데이터를 null로 변경
+-- **** 오라클 데이터베이스에서는 트리거 실행 가능!
+-- **** innoDB 형식의 데이터베이스인 mysql, maria 트리거 실행 불가능!
+-- 이유는 innoDB 형식은 트리거 실행 전 참조관계를 먼저 체크하여 에러 발생 시킴!
+select * from information_schema.triggers;
+
+/********************************************************/
+-- dept 테이블의 row 삭제시(dept_id 컬럼 포함)
+delimiter $$
+create trigger trg_dept_dept_id_delete
+after delete on dept -- 테이블명
+for each row
+begin
+
+-- 참조하는 emp 테이블의 dept_id에 null값 업데이트
+update emp
+	set dept_id = null
+where dept_id = old.dept_id;	-- old.dept_id : dept 테이블에서 삭제된 dept_id
+
+end $$
+delimiter ;
+/********************************************************/
+-- select * from information_schema.triggers;
+-- select * from dept;
+-- select * from emp;
+
+-- -- dept 테이블의 ACC 부서 삭제
+-- set sql_safe_updates = 0;
+-- delete from dept where dept_id = 'ACC';
+-- drop trigger trg_dept_dept_id_delete;
+
+-- 사원 테이블의 급여 변경 시 로그 저장 :: 트리거 업데이트 이용
+select * from information_schema.triggers;
+
+create table salary_log(
+	emp_id		char(5)		primary key,
+    old_salary	int,
+    new_salary	int,
+    change_date	date
+);
+
+desc salary_log;
+select * from salary_log;
+
+/********************************************************/
+delimiter $$
+create trigger trg_salary_update
+after update on employee -- 테이블명
+for each row
+begin
+
+-- 사원 테이블의 급여 변경 시 로그 저장, old.salary(기존급여), new.salary(새로운급여)
+	if	old.salary <> new.salary	then
+		insert into salary_log(emp_id, old_salary, new_salary, change_date)
+		values(old.emp_id, old.salary, new.salary, now());
+	end if;
+    
+end $$
+delimiter ;
+/********************************************************/
+
+update employee set salary = 9500
+where emp_id = 'S0001';
+
+update employee set salary = null
+where emp_id = 'S0020';
+
+select * from salary_log;
+select * from employee;

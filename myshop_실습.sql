@@ -255,13 +255,18 @@ WHERE CAST(order_date AS DATE) BETWEEN '2019-01-01' AND '2019-06-30'
 GROUP BY LEFT(order_date, 4), SUBSTRING(order_date, 6, 2);
 
 -- Q20) 주문연도별, 주문월별 전체금액 합과 평균을 조회하고, rollup 함수를 이용하여 소계와 총계를 출력해주세요.
-SELECT 
-LEFT(order_date, 4) 주문연도, 
-SUBSTRING(order_date, 6, 2) 주문월, 
-FORMAT(SUM(TOTAL_DUE), 0) 전체금액합계, 
-FORMAT(AVG(TOTAL_DUE), 2) 전체금액평균 
-FROM order_header
-GROUP BY LEFT(order_date, 4), SUBSTRING(order_date,6,2) WITH ROLLUP;
+
+select 
+	if(grouping(year), '연도별 총합계', ifnull(year, '-')) 주문연도,
+    if(grouping(month), '월별 총합계', ifnull(month, '-')) 주문월,
+    format(sum(total_due), 0) 합계, 
+    format(avg(total_due), 0) 평균금액
+from (SELECT 
+	left(order_date, 4) year, 
+	substring(order_date, 6, 2) month, 
+	total_due
+	FROM order_header) T
+group by year, month with rollup;
 
 /**
 	테이블 조인 : 기본 SQL 방식, ANSI SQL
@@ -358,4 +363,53 @@ desc product;
 select * from order_detail;
 show tables;
 
+/**
+	서브쿼리
+*/
+-- Q13) 'mtkim', 'odoh', 'soyoukim', 'winterkim' 고객 주문의 주문번호, 고객아이디, 주문일시, 전체금액을 조회하세요.
+select order_id, customer_id, order_date, total_due
+from order_header
+where customer_id in (select customer_id 
+						from customer 
+                        where customer_id in ('mtkim', 'odoh', 'soyoukim', 'winterkim'));
 
+-- Q14) '전주' 지역 고객의 아이디를 조회하세요.
+select customer_id from customer where city = '전주';
+
+-- Q15) 위 두 쿼리문을 조합해서 하위 쿼리를 사용해 '전주' 지역 고객 주문의 주문번호, 고객아이디, 주문일시, 전체금액을 조회하세요.
+select order_id, customer_id, order_date, total_due
+from order_header -- sipark, thankkim
+where customer_id in (select customer_id 
+						from customer 
+                        where customer_id in (select customer_id from customer where city = '전주'));
+                        
+-- Q16) 고객의 포인트 최댓값을 조회하세요.
+select max(point) 포인트최댓값 from customer;
+
+-- Q17) 하위 쿼리를 사용해 가장 포인트가 많은 고객의 이름, 아이디, 등록일, 포인트를 조회하세요.
+select customer_name, customer_id, register_date, point
+from customer
+where point = (select max(point) 포인트최댓값 from customer);
+
+-- Q18) 하위 쿼리를 사용해 홍길동(gdhong) 고객보다 포인트가 많은 고객 이름, 아이디, 등록일, 포인트를 조회하세요.
+select customer_name, customer_id, register_date, point
+from customer
+where point > (select point 
+				from customer 
+                where customer_name = '홍길동');
+
+-- Q19) 하위 쿼리를 사용해 홍길동(gdhong) 고객과 같은 지역의 고객 이름, 아이디, 지역, 등록일, 포인트를 조회하세요.
+--      단, 고객 이름을 기준으로 오름차순 정렬해서 조회하세요.
+select customer_name, customer_id, city, register_date, point 
+from customer
+where city = (select city from customer where customer_id = 'gdhong')
+order by customer_name asc;
+
+-- Q20) 하위 쿼리를 사용해 홍길동(gdhong) 고객보다 포인트가 많은 고객 이름, 아이디, 등록일, 포인트를 조회하고, 행번호를 추가하여 출력하세요.
+select 
+	row_number() over() as rno,
+	customer_name, customer_id, register_date, point
+from customer
+where point > (select point 
+				from customer 
+                where customer_name = '홍길동');
